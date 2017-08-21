@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>  
+<html>
+	<head>
+	    <meta charset="utf-8">
+	    <style>
+	    	#heatmapDiv{
+	    		background-size:100% auto; 	
+	    	}
+	    </style>
+	</head>
+	<body>
+		<div id="realtimeMap" style="width:325px; height:300px;margin:5px auto;">
+			<div id="heatmapDiv" value="building-floor" style="background-image: url(http://47.93.36.135/images/hdzplatform/map/HDZ120215D8829342F/F1/map.jpg);background-repeat:no-repeat;">
+				<canvas id="canvas" width="325px" height="300px" style="border:1px solid #A6A7A6;"></canvas>  
+			</div>
+		</div>
+		<script>  
+		    /*  
+		    *以(x,y)为中心，半径为r的正n边形  
+		    *@param c 是canvas的上下文对象  
+		    *@param angle 是第一个点(以最上面的顶点为准)偏离中心点(x,y)的弧度  
+		    *   angle为0时第一个点和中心的x想等，如第一个正方形  
+		    #@param counterclockwise 是angle偏离是顺时针还是逆时针  
+		    */  
+		    function polygon(c,n,x,y,r,angle,counterclockwise){  
+		        var angle = angle || 0;  
+		        var counterclockwise = counterclockwise || false;  
+		        c.moveTo(x + r*Math.sin(angle), y - r*Math.cos(angle));     //确立第一个点  
+		        var delta = 2*Math.PI/n;        //相邻两个顶点之间的夹角  
+		        for(var i=0;i<n;i++){            //其他顶点  
+		            angle += counterclockwise ? -delta : delta;     //角度调整  
+		            c.lineTo(x + r*Math.sin(angle), y - r*Math.cos(angle));  
+		        }  
+		        c.closePath();      //首位相邻    
+		    }  
+		     function hexagonal(name,x,y,r,color){
+		    	var canvas = document.getElementById('canvas');  
+		   		var name = canvas.getContext("2d");  
+		    	name.beginPath();  
+		    	polygon(name,6,x,y,r,Math.PI/6);  
+		    	name.fillStyle = 'rgba('+color+',220,50,0.7)'
+		    	name.strokeStyle='blue';
+		    	name.fill(); 
+		    	name.lineWidth=0.2;
+				name.strokeStyle="white";
+				name.stroke();
+		    }
+		
+			var hexagonals={};
+		    function plotHexHeatmap(){
+		    	var r=6;
+		    	img = new Image(); 
+		        img.src = "http://47.93.36.135/images/hdzplatform/map/HDZ120215D8829342F/F1/map.jpg";  
+		        if(img.complete){
+		        	newHeight=parseFloat(((325)/img.width)*img.height);
+		        	var scaling = parseFloat((325)/img.width);
+		        	//alert("324"+scaling);
+				}else{
+					img.onload = function(){
+						var scaling = parseFloat((325)/img.width);
+						newHeight=parseFloat(((325)/img.width)*img.height);
+		        		for(var i=0;i<Math.ceil((325*2)/(3*r));i++){
+		        			for(var j=0;j<Math.ceil(newHeight/(Math.sqrt(3)*r));j++){
+		        				var name=i+"_"+j;
+		        				if(i%2==0){
+		        					//hexagonals.set(name,(((3/2)*i+1)*r).toFixed(4)+"_"+((j*Math.sqrt(3)+Math.sqrt(3)/2)*r).toFixed(4)+"_"+"0");
+		        					hexagonals[name]=(((3/2)*i+1)*r).toFixed(4)+"_"+((j*Math.sqrt(3)+Math.sqrt(3)/2)*r).toFixed(4)+"_"+"0"
+		        					//var color = Math.random()*255;
+		        					//hexagonal(name,((3/2)*i+1)*r,(j*Math.sqrt(3)+Math.sqrt(3)/2)*r ,r,0);
+		        					//console.log(name);
+		        				}else{
+		        					hexagonals[name]=(((3/2)*i+1)*r).toFixed(4)+"_"+(j*Math.sqrt(3)*r).toFixed(4)+"_"+"0"
+		        					//var color = Math.random()*255;
+		        					//hexagonal(name,((3/2)*i+1)*r,(j*Math.sqrt(3)*r),r,250);
+		        					//console.log(name);
+		        				}
+		        				
+		        			}
+		        		}
+		        		
+						for(var i = 0;i <100;i++){
+							var oriX = Math.random()*30+100;
+							var oriY = Math.random()*10+100;
+							var count = Math.random()*255;
+							judgeAndCount(oriX,oriY,count,r)
+							
+						}
+						//console.log(hexagonals);
+						for(var i=0;i<Math.ceil((325*2)/(3*r));i++){
+		        			for(var j=0;j<Math.ceil(newHeight/(Math.sqrt(3)*r));j++){
+		        				var name=i+"_"+j;
+								var xFinal=parseFloat(hexagonals[name].split("_")[0]);
+			    				var yFinal=parseFloat(hexagonals[name].split("_")[1]);
+			    				var countFinal=hexagonals[name].split("_")[2];
+			    				if(countFinal!="0"){
+			    					hexagonal(name,xFinal,yFinal,r,parseInt(countFinal));
+			    				}
+		    				}
+						}
+					}
+					
+				}
+				
+		    }
+		    function judgeAndCount(x,y,count,r){//读取的点oriX,oriY,count corX,corY为地图宽高,r为六边形的半径
+		    	
+		    	var j=Math.ceil(Math.ceil(2*y/(r*Math.sqrt(3)))/2);//y为第j个或者j-1个
+		    	var i=Math.ceil(2*x/(3*r));//第i个或者第i-1个
+		    	var temp = r;
+		    	var i1=i-1>0?i-1:0;
+		    	var j1=j-1>0?j-1:0;
+		    
+		    	var namei = new Array();
+		    	namei[0]=i+"_"+j;
+		    	namei[1]=i1+"_"+j;
+		    	namei[2]=i+"_"+j1;
+		    	namei[3]=i1+"_"+j1;
+		    	var mark=-1;
+		    	var dis = new Array();
+		    	dis[0] = distance(x,y,namei[0]);
+		    	dis[1] = distance(x,y,namei[1]);
+		    	dis[2] = distance(x,y,namei[2]);
+		    	dis[3] = distance(x,y,namei[3]);
+		  	//console.log("x:"+x+" y:"+y+" i:"+i+" j:"+j);
+		    	for(var k=0;k<4;k++){
+		    		if(dis[k]<temp){
+		    			temp=dis[k];
+		    			mark=k;
+		    		}
+					//console.log(dis[k]);
+		    	}
+		    	if(mark>=0){
+		    		//console.log(namei[mark]);
+		    		var newcount = parseInt(hexagonals[namei[mark]].split("_")[2])+count;
+		    		hexagonals[namei[mark]]=hexagonals[namei[mark]].split("_")[0]+"_"+hexagonals[namei[mark]].split("_")[1]+"_"+newcount;
+		    	}
+		    }
+		    function distance(x,y,hexName){//x,y与某个六边形中心的距离
+		    	var x1=hexagonals[hexName].split("_")[0];
+		    	var y1=hexagonals[hexName].split("_")[1];
+		    	var dis = Math.sqrt((x-x1)*(x-x1)+(y-y1)*(y-y1));
+		    	return dis;
+		    }
+		 	plotHexHeatmap();
+		</script>  
+	</body>
+</html>
